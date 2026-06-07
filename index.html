@@ -5,16 +5,716 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hexline</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}body{background:#0a0a12;overflow:hidden;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:#c8cad0;user-select:none}canvas{display:block;cursor:crosshair}#ui{position:fixed;top:24px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;z-index:10}#title{font-size:14px;letter-spacing:6px;text-transform:uppercase;color:#5a5e6a;margin-bottom:6px}#status{font-size:13px;color:#7a7e8a}#score-bar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:32px;z-index:10;pointer-events:none}.score-item{text-align:center}.score-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#3a3e4a;margin-bottom:2px}.score-value{font-size:22px;font-weight:300;color:#6af;font-variant-numeric:tabular-nums}#level-complete{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(10,10,18,0.85);z-index:20;opacity:0;pointer-events:none;transition:opacity 0.6s}#level-complete.show{opacity:1;pointer-events:all}#level-complete h2{font-size:28px;font-weight:300;letter-spacing:8px;text-transform:uppercase;color:#6af;margin-bottom:8px}#level-complete p{font-size:14px;color:#5a5e6a;margin-bottom:24px}#next-btn{padding:10px 36px;border:1px solid #3a4a6a;background:transparent;color:#6af;font-size:13px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all 0.3s}#next-btn:hover{background:#6af;color:#0a0a12}
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a12;
+    overflow: hidden;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #c8cad0;
+    user-select: none;
+  }
+  canvas { display: block; }
+  #ui {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    text-align: center; pointer-events: none; z-index: 10;
+  }
+  #title { font-size: 13px; letter-spacing: 6px; text-transform: uppercase; color: #4a4e5a; margin-bottom: 4px; }
+  #status { font-size: 13px; color: #8af; transition: color 0.3s; }
+  #score-bar {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 28px; align-items: center; z-index: 10;
+  }
+  .score-item { text-align: center; pointer-events: none; }
+  .score-label { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: #3a3e4a; margin-bottom: 2px; }
+  .score-value { font-size: 20px; font-weight: 300; color: #6af; font-variant-numeric: tabular-nums; }
+  #drop-btn {
+    padding: 8px 28px; border: 1px solid #3a5a3a; background: rgba(100,255,150,0.08);
+    color: #6fa; font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.3s; pointer-events: all; border-radius: 2px;
+  }
+  #drop-btn:hover { background: rgba(100,255,150,0.2); border-color: #6fa; }
+  #drop-btn.disabled { opacity: 0.3; pointer-events: none; }
+  #reset-btn {
+    padding: 8px 20px; border: 1px solid #5a3a3a; background: rgba(255,100,100,0.08);
+    color: #f88; font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.3s; pointer-events: all; border-radius: 2px;
+  }
+  #reset-btn:hover { background: rgba(255,100,100,0.2); border-color: #f88; }
+  #overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(10,10,18,0.85); z-index: 20;
+    opacity: 0; pointer-events: none; transition: opacity 0.6s;
+  }
+  #overlay.show { opacity: 1; pointer-events: all; }
+  #overlay h2 {
+    font-size: 28px; font-weight: 300; letter-spacing: 8px;
+    text-transform: uppercase; color: #6fa; margin-bottom: 8px;
+  }
+  #overlay p { font-size: 14px; color: #5a5e6a; margin-bottom: 24px; }
+  #overlay .fail { color: #f88; }
+  #next-btn {
+    padding: 10px 36px; border: 1px solid #3a5a3a; background: transparent;
+    color: #6fa; font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.3s;
+  }
+  #next-btn:hover { background: #6fa; color: #0a0a12; }
+  #retry-btn {
+    padding: 10px 36px; border: 1px solid #5a3a3a; background: transparent;
+    color: #f88; font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.3s;
+  }
+  #retry-btn:hover { background: #f88; color: #0a0a12; }
 </style>
 </head>
 <body>
-<div id="ui"><div id="title">Hexline</div><div id="status">Click edges to solidify them</div></div>
-<div id="score-bar"><div class="score-item"><div class="score-label">Level</div><div class="score-value" id="level-num">1</div></div><div class="score-item"><div class="score-label">Edges</div><div class="score-value" id="edges-count">0/0</div></div><div class="score-item"><div class="score-label">Hexes</div><div class="score-value" id="hexes-count">0/0</div></div></div>
-<div id="level-complete"><h2>Complete</h2><p id="complete-msg">All hexagons solidified</p><button id="next-btn">Next Level</button></div>
+
+<div id="ui">
+  <div id="title">Hexline</div>
+  <div id="status">Place edges to guide the ball into the goal</div>
+</div>
+
+<div id="score-bar">
+  <div class="score-item">
+    <div class="score-label">Level</div>
+    <div class="score-value" id="level-num">1</div>
+  </div>
+  <div class="score-item">
+    <div class="score-label">Edges</div>
+    <div class="score-value" id="edges-left">3</div>
+  </div>
+  <div class="score-item">
+    <div class="score-label">Hits</div>
+    <div class="score-value" id="hits-count">0 / 0</div>
+  </div>
+  <button id="drop-btn">Drop</button>
+  <button id="reset-btn">Reset</button>
+</div>
+
+<div id="overlay">
+  <h2 id="overlay-title">Complete</h2>
+  <p id="overlay-msg">The ball hit every edge and reached the goal</p>
+  <button id="next-btn">Next Level</button>
+  <button id="retry-btn" style="display:none">Retry</button>
+</div>
+
 <canvas id="c"></canvas>
+
 <script>
-const canvas=document.getElementById('c'),ctx=canvas.getContext('2d');let W,H,cx,cy;function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;cx=W/2;cy=H/2}resize();window.addEventListener('resize',resize);const HS=40,S3=Math.sqrt(3);function hc(cx,cy,s,i){const a=Math.PI/180*(60*i-30);return[cx+s*Math.cos(a),cy+s*Math.sin(a)]}function hCtr(q,r){return[HS*(S3*q+S3/2*r),HS*(1.5*r)]}function sn(v){return[Math.round(v[0]*100)/100,Math.round(v[1]*100)/100]}function ek(a,b){const sa=sn(a),sb=sn(b),ka=sa[0]+','+sa[1],kb=sb[0]+','+sb[1];return ka<kb?ka+'|'+kb:kb+'|'+ka}function psd(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,l2=dx*dx+dy*dy;if(!l2)return Math.hypot(px-ax,py-ay);let t=((px-ax)*dx+(py-ay)*dy)/l2;t=Math.max(0,Math.min(1,t));return Math.hypot(px-(ax+t*dx),py-(ay+t*dy))}let E={},HC={},level=1,tT=0,sC=0,cH=0,tH=0,gW=false,gQ=[],gI=0,gTm=0;const GI=120,GD=3000;let P=[];function bL(l){E={};HC={};P=[];sC=0;cH=0;gW=false;const R=Math.min(1+l,5),co=[];for(let q=-R;q<=R;q++)for(let r=-R;r<=R;r++)if(Math.abs(q+r)<=R)co.push([q,r]);tH=co.length;co.forEach(([q,r])=>{const[hx,hy]=hCtr(q,r),cr=[];for(let i=0;i<6;i++)cr.push(hc(hx,hy,HS,i));const ck=q+','+r,cell={q,r,cx:hx,cy:hy,ek:[],done:false,fa:0};for(let i=0;i<6;i++){const a=cr[i],b=cr[(i+1)%6],k=ek(a,b);if(!E[k])E[k]={a,b,s:false,g:false,gs:0,pp:Math.random()*Math.PI*2,hk:[]};E[k].hk.push(ck);cell.ek.push(k)}HC[ck]=cell});tT=Object.keys(E).length;const ak=Object.keys(E);ak.sort((a,b)=>{const ea=E[a],eb=E[b];return Math.hypot((ea.a[0]+ea.b[0])/2,(ea.a[1]+ea.b[1])/2)-Math.hypot((eb.a[0]+eb.b[0])/2,(eb.a[1]+eb.b[1])/2)});gQ=ak;gI=0;gTm=0;uUI()}function uUI(){document.getElementById('level-num').textContent=level;document.getElementById('edges-count').textContent=sC+'/'+tT;document.getElementById('hexes-count').textContent=cH+'/'+tH}function cHx(ck){const c=HC[ck];if(c.done)return;if(c.ek.every(k=>E[k].s)){c.done=true;cH++;for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2,sp=.5+Math.random()*1.5;P.push({x:c.cx,y:c.cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,l:1,d:.008+Math.random()*.012,sz:1.5+Math.random()*2})}}}function sol(k){const e=E[k];if(e.s)return;e.s=true;e.g=false;sC++;for(let i=0;i<6;i++){const t=Math.random(),px=e.a[0]+(e.b[0]-e.a[0])*t,py=e.a[1]+(e.b[1]-e.a[1])*t,a=Math.random()*Math.PI*2;P.push({x:px,y:py,vx:Math.cos(a)*.8,vy:Math.sin(a)*.8,l:1,d:.015+Math.random()*.02,sz:1+Math.random()*1.5})}e.hk.forEach(ck=>cHx(ck));uUI();if(sC>=tT){gW=true;setTimeout(()=>document.getElementById('level-complete').classList.add('show'),600)}}let hE=null;canvas.addEventListener('mousemove',ev=>{const wx=ev.clientX-cx,wy=ev.clientY-cy;let cl=null,cd=18;Object.keys(E).forEach(k=>{const e=E[k];if(e.s)return;const d=psd(wx,wy,e.a[0],e.a[1],e.b[0],e.b[1]);if(d<cd){cd=d;cl=k}});hE=cl;canvas.style.cursor=cl?'pointer':'crosshair'});canvas.addEventListener('click',ev=>{if(gW)return;const wx=ev.clientX-cx,wy=ev.clientY-cy;let cl=null,cd=18;Object.keys(E).forEach(k=>{const e=E[k];if(e.s)return;const d=psd(wx,wy,e.a[0],e.a[1],e.b[0],e.b[1]);if(d<cd){cd=d;cl=k}});if(cl)sol(cl)});document.getElementById('next-btn').addEventListener('click',()=>{document.getElementById('level-complete').classList.remove('show');level++;bL(level)});let lt=0;function draw(now){const dt=now-lt;lt=now;ctx.clearRect(0,0,W,H);ctx.save();ctx.translate(cx,cy);Object.values(HC).forEach(c=>{ctx.beginPath();ctx.arc(c.cx,c.cy,1.5,0,Math.PI*2);ctx.fillStyle='rgba(40,42,54,0.6)';ctx.fill()});if(!gW){gTm+=dt;while(gTm>GI){gTm-=GI;const k=gQ[gI%gQ.length];if(!E[k].s){E[k].g=true;E[k].gs=now}gI++;if(gI>=gQ.length)gI=0}}const tm=now/1000;Object.keys(E).forEach(k=>{const e=E[k];if(e.s){ctx.beginPath();ctx.moveTo(e.a[0],e.a[1]);ctx.lineTo(e.b[0],e.b[1]);ctx.strokeStyle='#6af';ctx.lineWidth=2.5;ctx.stroke();ctx.beginPath();ctx.moveTo(e.a[0],e.a[1]);ctx.lineTo(e.b[0],e.b[1]);ctx.strokeStyle='rgba(102,170,255,0.15)';ctx.lineWidth=8;ctx.stroke()}else{ctx.beginPath();ctx.moveTo(e.a[0],e.a[1]);ctx.lineTo(e.b[0],e.b[1]);ctx.strokeStyle='rgba(50,55,70,0.4)';ctx.lineWidth=1;ctx.stroke();if(e.g){const el=now-e.gs;let I;if(el<400)I=el/400;else if(el<GD-600)I=.7+.3*Math.sin(tm*3+e.pp);else if(el<GD)I=(GD-el)/600;else{e.g=false;I=0}if(I>0){ctx.beginPath();ctx.moveTo(e.a[0],e.a[1]);ctx.lineTo(e.b[0],e.b[1]);ctx.strokeStyle='rgba(102,170,255,'+.12*I+')';ctx.lineWidth=12;ctx.stroke();ctx.beginPath();ctx.moveTo(e.a[0],e.a[1]);ctx.lineTo(e.b[0],e.b[1]);ctx.strokeStyle='rgba(130,190,255,'+.5*I+')';ctx.lineWidth=2;ctx.stroke()}}if(k===hE){ctx.beginPath();ctx.moveTo(e.a[0],e.a[1]);ctx.lineTo(e.b[0],e.b[1]);ctx.strokeStyle='rgba(102,170,255,0.6)';ctx.lineWidth=3;ctx.stroke();ctx.beginPath();ctx.moveTo(e.a[0],e.a[1]);ctx.lineTo(e.b[0],e.b[1]);ctx.strokeStyle='rgba(102,170,255,0.15)';ctx.lineWidth=10;ctx.stroke()}}});Object.values(HC).forEach(c=>{if(c.done){c.fa=Math.min(c.fa+.02,.12);const co=[];for(let i=0;i<6;i++)co.push(hc(c.cx,c.cy,HS-3,i));ctx.beginPath();ctx.moveTo(co[0][0],co[0][1]);for(let i=1;i<6;i++)ctx.lineTo(co[i][0],co[i][1]);ctx.closePath();ctx.fillStyle='rgba(102,170,255,'+c.fa+')';ctx.fill()}});for(let i=P.length-1;i>=0;i--){const p=P[i];p.x+=p.vx;p.y+=p.vy;p.vx*=.98;p.vy*=.98;p.l-=p.d;if(p.l<=0){P.splice(i,1);continue}ctx.beginPath();ctx.arc(p.x,p.y,p.sz*p.l,0,Math.PI*2);ctx.fillStyle='rgba(130,200,255,'+p.l*.7+')';ctx.fill()}const dv=new Set();Object.values(E).forEach(e=>{[e.a,e.b].forEach(v=>{const vk=sn(v).join(',');if(dv.has(vk))return;dv.add(vk);const hs=Object.values(E).some(e2=>e2.s&&(sn(e2.a).join(',')==vk||sn(e2.b).join(',')==vk));ctx.beginPath();ctx.arc(v[0],v[1],hs?2.5:1.2,0,Math.PI*2);ctx.fillStyle=hs?'rgba(102,170,255,0.8)':'rgba(60,65,80,0.5)';ctx.fill()})});ctx.restore();requestAnimationFrame(draw)}bL(1);requestAnimationFrame(draw);
+// âââ Setup âââ
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, cx, cy;
+function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; cx = W/2; cy = H/2; }
+resize();
+addEventListener('resize', resize);
+
+// âââ Hex math âââ
+const HEX = 42;
+const S3 = Math.sqrt(3);
+
+function hexCorner(hx, hy, i) {
+  const a = Math.PI/180 * (60*i - 30);
+  return [hx + HEX*Math.cos(a), hy + HEX*Math.sin(a)];
+}
+function hexCenter(q, r) {
+  return [HEX * (S3*q + S3/2*r), HEX * (1.5*r)];
+}
+function snap(v) { return [Math.round(v[0]*10)/10, Math.round(v[1]*10)/10]; }
+function edgeKey(a, b) {
+  const sa = snap(a), sb = snap(b);
+  const ka = sa[0]+','+sa[1], kb = sb[0]+','+sb[1];
+  return ka < kb ? ka+'|'+kb : kb+'|'+ka;
+}
+
+// âââ Physics helpers âââ
+function dot(a, b) { return a[0]*b[0] + a[1]*b[1]; }
+function len(v) { return Math.hypot(v[0], v[1]); }
+function norm(v) { const l = len(v); return l ? [v[0]/l, v[1]/l] : [0,0]; }
+function reflect(vel, n) {
+  const d = dot(vel, n);
+  return [vel[0] - 2*d*n[0], vel[1] - 2*d*n[1]];
+}
+function ptSegDist(px, py, ax, ay, bx, by) {
+  const dx = bx-ax, dy = by-ay, l2 = dx*dx+dy*dy;
+  if (!l2) return { dist: Math.hypot(px-ax, py-ay), t: 0 };
+  let t = ((px-ax)*dx + (py-ay)*dy) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return { dist: Math.hypot(px-(ax+t*dx), py-(ay+t*dy)), t,
+           cx: ax+t*dx, cy: ay+t*dy };
+}
+
+// âââ Game state âââ
+const GRAVITY = 0.15;
+const BOUNCE = 0.72;
+const BALL_R = 5;
+const FRICTION = 0.998;
+
+let phase = 'place'; // 'place', 'drop', 'done'
+let level = 1;
+let edgesAllowed = 0;
+let edgesPlaced = 0;
+
+// Grid data
+let allEdges = {};    // ek -> { a, b, isGoal, isPlayer, hit, idx }
+let hexCells = {};    // "q,r" -> { q, r, cx, cy, edgeKeys[] }
+let playerEdges = []; // keys of edges placed by player
+let goalEdgeKeys = [];
+
+// Ball
+let ball = null; // { x, y, vx, vy }
+let trail = [];
+let hitCount = 0;
+let ballLost = false;
+let ballInGoal = false;
+
+// Particles
+let particles = [];
+
+// Level definitions
+let startHex = null; // {q, r}
+let goalHex = null;  // {q, r}
+
+// Hover
+let hoveredEdge = null;
+
+// âââ Level configs âââ
+const LEVELS = [
+  { start: [0, -2], goal: [0, 2], edges: 3, grid: 3 },
+  { start: [-1, -2], goal: [1, 2], edges: 4, grid: 3 },
+  { start: [0, -3], goal: [0, 3], edges: 4, grid: 4 },
+  { start: [-2, -2], goal: [2, 2], edges: 5, grid: 4 },
+  { start: [0, -3], goal: [-2, 3], edges: 5, grid: 4 },
+  { start: [2, -3], goal: [-2, 3], edges: 6, grid: 4 },
+  { start: [-1, -4], goal: [1, 4], edges: 6, grid: 5 },
+  { start: [0, -4], goal: [0, 4], edges: 7, grid: 5 },
+  { start: [3, -4], goal: [-3, 4], edges: 7, grid: 5 },
+  { start: [-2, -4], goal: [2, 4], edges: 8, grid: 5 },
+];
+
+function getLevel(n) {
+  const idx = Math.min(n - 1, LEVELS.length - 1);
+  const base = LEVELS[idx];
+  // For levels beyond defined ones, increase edges
+  if (n > LEVELS.length) {
+    return { ...base, edges: base.edges + (n - LEVELS.length) };
+  }
+  return base;
+}
+
+function buildLevel(lvl) {
+  const cfg = getLevel(lvl);
+  allEdges = {};
+  hexCells = {};
+  playerEdges = [];
+  goalEdgeKeys = [];
+  ball = null;
+  trail = [];
+  hitCount = 0;
+  particles = [];
+  ballLost = false;
+  ballInGoal = false;
+  phase = 'place';
+  edgesPlaced = 0;
+  edgesAllowed = cfg.edges;
+  hoveredEdge = null;
+
+  startHex = { q: cfg.start[0], r: cfg.start[1] };
+  goalHex = { q: cfg.goal[0], r: cfg.goal[1] };
+
+  const radius = cfg.grid;
+  for (let q = -radius; q <= radius; q++) {
+    for (let r = -radius; r <= radius; r++) {
+      if (Math.abs(q+r) > radius) continue;
+      const [hx, hy] = hexCenter(q, r);
+      const ck = q+','+r;
+      const cell = { q, r, cx: hx, cy: hy, edgeKeys: [] };
+
+      for (let i = 0; i < 6; i++) {
+        const a = hexCorner(hx, hy, i);
+        const b = hexCorner(hx, hy, (i+1)%6);
+        const ek = edgeKey(a, b);
+        if (!allEdges[ek]) {
+          allEdges[ek] = { a, b, isGoal: false, isPlayer: false, hit: false, idx: -1 };
+        }
+        cell.edgeKeys.push(ek);
+      }
+      hexCells[ck] = cell;
+    }
+  }
+
+  // Mark goal edges: edges 0(right), 1(bottom-right), 2(bottom-left), 3(left) of goal hex
+  // This creates a "cup" â open at the top
+  const gck = goalHex.q+','+goalHex.r;
+  const goalCell = hexCells[gck];
+  if (goalCell) {
+    // Edges: 0=right, 1=bottom-right, 2=bottom-left, 3=left â these form the cup
+    [0, 1, 2, 3].forEach(i => {
+      const ek = goalCell.edgeKeys[i];
+      if (allEdges[ek]) {
+        allEdges[ek].isGoal = true;
+        goalEdgeKeys.push(ek);
+      }
+    });
+  }
+
+  updateUI();
+}
+
+function updateUI() {
+  document.getElementById('level-num').textContent = level;
+  document.getElementById('edges-left').textContent = (edgesAllowed - edgesPlaced);
+  document.getElementById('hits-count').textContent = hitCount + ' / ' + playerEdges.length;
+  document.getElementById('status').textContent =
+    phase === 'place' ? 'Place ' + (edgesAllowed - edgesPlaced) + ' edges to guide the ball' :
+    phase === 'drop' ? 'Ball is rolling...' : '';
+
+  const dropBtn = document.getElementById('drop-btn');
+  if (phase === 'place' && edgesPlaced > 0) {
+    dropBtn.classList.remove('disabled');
+  } else {
+    dropBtn.classList.add('disabled');
+  }
+}
+
+// âââ Player interaction âââ
+canvas.addEventListener('mousemove', e => {
+  if (phase !== 'place') { hoveredEdge = null; canvas.style.cursor = 'default'; return; }
+  const wx = e.clientX - cx, wy = e.clientY - cy;
+  let closest = null, closestDist = 16;
+
+  Object.keys(allEdges).forEach(ek => {
+    const edge = allEdges[ek];
+    if (edge.isGoal || edge.isPlayer) return;
+    const { dist } = ptSegDist(wx, wy, edge.a[0], edge.a[1], edge.b[0], edge.b[1]);
+    if (dist < closestDist) { closestDist = dist; closest = ek; }
+  });
+
+  hoveredEdge = closest;
+  canvas.style.cursor = closest ? 'pointer' : 'default';
+});
+
+canvas.addEventListener('click', e => {
+  if (phase !== 'place') return;
+  const wx = e.clientX - cx, wy = e.clientY - cy;
+  let closest = null, closestDist = 16;
+
+  Object.keys(allEdges).forEach(ek => {
+    const edge = allEdges[ek];
+    if (edge.isGoal || edge.isPlayer) return;
+    const { dist } = ptSegDist(wx, wy, edge.a[0], edge.a[1], edge.b[0], edge.b[1]);
+    if (dist < closestDist) { closestDist = dist; closest = ek; }
+  });
+
+  if (closest && edgesPlaced < edgesAllowed) {
+    allEdges[closest].isPlayer = true;
+    allEdges[closest].idx = playerEdges.length;
+    playerEdges.push(closest);
+    edgesPlaced++;
+
+    // Spark effect
+    const e2 = allEdges[closest];
+    for (let i = 0; i < 8; i++) {
+      const t = Math.random();
+      const px = e2.a[0] + (e2.b[0]-e2.a[0])*t;
+      const py = e2.a[1] + (e2.b[1]-e2.a[1])*t;
+      const ang = Math.random()*Math.PI*2;
+      particles.push({ x: px, y: py, vx: Math.cos(ang)*1.5, vy: Math.sin(ang)*1.5,
+                        life: 1, decay: 0.02, size: 2, color: [102,170,255] });
+    }
+    updateUI();
+  }
+});
+
+// Right-click to remove last placed edge
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if (phase !== 'place' || playerEdges.length === 0) return;
+  const last = playerEdges.pop();
+  allEdges[last].isPlayer = false;
+  allEdges[last].idx = -1;
+  edgesPlaced--;
+  updateUI();
+});
+
+// Drop button
+document.getElementById('drop-btn').addEventListener('click', () => {
+  if (phase !== 'place' || edgesPlaced === 0) return;
+  phase = 'drop';
+  const [sx, sy] = hexCenter(startHex.q, startHex.r);
+  ball = { x: sx, y: sy, vx: 0, vy: 0 };
+  trail = [];
+  hitCount = 0;
+  // Reset hit flags
+  playerEdges.forEach(ek => { allEdges[ek].hit = false; });
+  updateUI();
+});
+
+// Reset button
+document.getElementById('reset-btn').addEventListener('click', () => {
+  playerEdges.forEach(ek => {
+    allEdges[ek].isPlayer = false;
+    allEdges[ek].hit = false;
+    allEdges[ek].idx = -1;
+  });
+  playerEdges = [];
+  edgesPlaced = 0;
+  ball = null;
+  trail = [];
+  hitCount = 0;
+  ballLost = false;
+  ballInGoal = false;
+  phase = 'place';
+  updateUI();
+});
+
+// Overlay buttons
+document.getElementById('next-btn').addEventListener('click', () => {
+  document.getElementById('overlay').classList.remove('show');
+  level++;
+  buildLevel(level);
+});
+document.getElementById('retry-btn').addEventListener('click', () => {
+  document.getElementById('overlay').classList.remove('show');
+  buildLevel(level);
+});
+
+// âââ Physics step âââ
+function physicsTick() {
+  if (!ball || phase !== 'drop') return;
+
+  // Gravity
+  ball.vy += GRAVITY;
+
+  // Friction
+  ball.vx *= FRICTION;
+  ball.vy *= FRICTION;
+
+  // Move
+  ball.x += ball.vx;
+  ball.y += ball.vy;
+
+  // Trail
+  trail.push({ x: ball.x, y: ball.y, life: 1 });
+  if (trail.length > 80) trail.shift();
+
+  // Collide with all solid edges (player + goal)
+  const solidKeys = [...playerEdges, ...goalEdgeKeys];
+  for (const ek of solidKeys) {
+    const edge = allEdges[ek];
+    const { dist, cx: cpx, cy: cpy } = ptSegDist(ball.x, ball.y, edge.a[0], edge.a[1], edge.b[0], edge.b[1]);
+
+    if (dist < BALL_R + 1.5) {
+      // Normal from edge to ball
+      let nx = ball.x - cpx, ny = ball.y - cpy;
+      const nl = Math.hypot(nx, ny);
+      if (nl > 0.001) { nx /= nl; ny /= nl; } else { nx = 0; ny = -1; }
+
+      // Push ball out
+      const overlap = BALL_R + 1.5 - dist;
+      ball.x += nx * overlap;
+      ball.y += ny * overlap;
+
+      // Reflect velocity
+      const velDotN = ball.vx*nx + ball.vy*ny;
+      if (velDotN < 0) { // Only if moving into edge
+        ball.vx -= (1 + BOUNCE) * velDotN * nx;
+        ball.vy -= (1 + BOUNCE) * velDotN * ny;
+
+        // Mark hit
+        if (edge.isPlayer && !edge.hit) {
+          edge.hit = true;
+          hitCount++;
+
+          // Hit particles
+          for (let i = 0; i < 10; i++) {
+            const ang = Math.random()*Math.PI*2;
+            particles.push({ x: cpx, y: cpy, vx: Math.cos(ang)*2, vy: Math.sin(ang)*2 - 1,
+                              life: 1, decay: 0.015, size: 2.5, color: [100,255,150] });
+          }
+          updateUI();
+        }
+
+        // Goal edge hit particles
+        if (edge.isGoal) {
+          for (let i = 0; i < 4; i++) {
+            const ang = Math.random()*Math.PI*2;
+            particles.push({ x: cpx, y: cpy, vx: Math.cos(ang)*1, vy: Math.sin(ang)*1,
+                              life: 1, decay: 0.025, size: 1.5, color: [255,200,50] });
+          }
+        }
+      }
+    }
+  }
+
+  // Check if ball is in goal hex center region
+  const [gx, gy] = hexCenter(goalHex.q, goalHex.r);
+  const goalDist = Math.hypot(ball.x - gx, ball.y - gy);
+  const speed = Math.hypot(ball.vx, ball.vy);
+
+  if (goalDist < HEX * 0.4 && speed < 2.5) {
+    // Ball is settling in goal
+    if (hitCount >= playerEdges.length && playerEdges.length > 0) {
+      // WIN
+      phase = 'done';
+      ballInGoal = true;
+
+      // Victory particles
+      for (let i = 0; i < 30; i++) {
+        const ang = Math.random()*Math.PI*2;
+        const sp = 1 + Math.random()*3;
+        particles.push({ x: gx, y: gy, vx: Math.cos(ang)*sp, vy: Math.sin(ang)*sp - 2,
+                          life: 1, decay: 0.008, size: 3, color: [100,255,150] });
+      }
+
+      setTimeout(() => {
+        const ov = document.getElementById('overlay');
+        document.getElementById('overlay-title').textContent = 'Complete';
+        document.getElementById('overlay-title').style.color = '#6fa';
+        document.getElementById('overlay-msg').textContent = 'The ball hit every edge and reached the goal';
+        document.getElementById('overlay-msg').className = '';
+        document.getElementById('next-btn').style.display = '';
+        document.getElementById('retry-btn').style.display = 'none';
+        ov.classList.add('show');
+      }, 1000);
+    }
+  }
+
+  // Check if ball fell off screen
+  const maxDist = (getLevel(level).grid + 2) * HEX * 2;
+  if (Math.abs(ball.x) > maxDist || ball.y > maxDist || ball.y < -maxDist) {
+    phase = 'done';
+    ballLost = true;
+    setTimeout(() => {
+      const ov = document.getElementById('overlay');
+      const missed = playerEdges.length - hitCount;
+      document.getElementById('overlay-title').textContent = 'Miss';
+      document.getElementById('overlay-title').style.color = '#f88';
+      document.getElementById('overlay-msg').textContent =
+        hitCount < playerEdges.length
+          ? 'The ball missed ' + missed + ' edge' + (missed > 1 ? 's' : '')
+          : 'The ball didn\'t reach the goal';
+      document.getElementById('overlay-msg').className = 'fail';
+      document.getElementById('next-btn').style.display = 'none';
+      document.getElementById('retry-btn').style.display = '';
+      ov.classList.add('show');
+    }, 500);
+  }
+}
+
+// âââ Rendering âââ
+let lastTime = 0;
+
+function draw(now) {
+  const dt = Math.min(now - lastTime, 32);
+  lastTime = now;
+
+  // Physics substeps for stability
+  if (phase === 'drop') {
+    const steps = 3;
+    for (let i = 0; i < steps; i++) physicsTick();
+  }
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  const time = now / 1000;
+
+  // ââ Background hex center dots ââ
+  Object.values(hexCells).forEach(c => {
+    ctx.beginPath();
+    ctx.arc(c.cx, c.cy, 1.2, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(35,38,50,0.6)';
+    ctx.fill();
+  });
+
+  // ââ Start hex indicator ââ
+  if (startHex) {
+    const [sx, sy] = hexCenter(startHex.q, startHex.r);
+    // Pulsing circle
+    const pulse = 0.5 + 0.3 * Math.sin(time * 2);
+    ctx.beginPath();
+    ctx.arc(sx, sy, 12, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(100,170,255,${0.08 * pulse})`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(sx, sy, 6, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(100,170,255,${0.15 * pulse})`;
+    ctx.fill();
+
+    // "START" label
+    if (phase === 'place') {
+      ctx.font = '8px "Segoe UI"';
+      ctx.fillStyle = `rgba(100,170,255,${0.4 * pulse})`;
+      ctx.textAlign = 'center';
+      ctx.fillText('START', sx, sy - 18);
+    }
+  }
+
+  // ââ Goal hex ââ
+  if (goalHex) {
+    const [gx, gy] = hexCenter(goalHex.q, goalHex.r);
+    // Soft glow
+    const gp = 0.5 + 0.3 * Math.sin(time * 1.5 + 1);
+    ctx.beginPath();
+    ctx.arc(gx, gy, 16, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(255,200,50,${0.06 * gp})`;
+    ctx.fill();
+
+    if (phase === 'place') {
+      ctx.font = '8px "Segoe UI"';
+      ctx.fillStyle = `rgba(255,200,50,${0.4 * gp})`;
+      ctx.textAlign = 'center';
+      ctx.fillText('GOAL', gx, gy + 4);
+    }
+  }
+
+  // ââ Draw all edges ââ
+  Object.keys(allEdges).forEach(ek => {
+    const e = allEdges[ek];
+
+    if (e.isGoal) {
+      // Goal edges â golden
+      const gp = 0.6 + 0.3 * Math.sin(time * 2 + 0.5);
+      ctx.beginPath();
+      ctx.moveTo(e.a[0], e.a[1]);
+      ctx.lineTo(e.b[0], e.b[1]);
+      ctx.strokeStyle = `rgba(255,200,50,${0.7 * gp})`;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Glow
+      ctx.beginPath();
+      ctx.moveTo(e.a[0], e.a[1]);
+      ctx.lineTo(e.b[0], e.b[1]);
+      ctx.strokeStyle = `rgba(255,200,50,${0.1 * gp})`;
+      ctx.lineWidth = 10;
+      ctx.stroke();
+
+    } else if (e.isPlayer) {
+      // Player-placed edges
+      const baseColor = e.hit ? [100,255,150] : [102,170,255];
+      const alpha = e.hit ? 1 : 0.8;
+
+      ctx.beginPath();
+      ctx.moveTo(e.a[0], e.a[1]);
+      ctx.lineTo(e.b[0], e.b[1]);
+      ctx.strokeStyle = `rgba(${baseColor.join(',')},${alpha})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      // Glow
+      ctx.beginPath();
+      ctx.moveTo(e.a[0], e.a[1]);
+      ctx.lineTo(e.b[0], e.b[1]);
+      ctx.strokeStyle = `rgba(${baseColor.join(',')},0.12)`;
+      ctx.lineWidth = 12;
+      ctx.stroke();
+
+      // Edge number
+      const mx = (e.a[0] + e.b[0]) / 2;
+      const my = (e.a[1] + e.b[1]) / 2;
+      ctx.font = 'bold 9px "Segoe UI"';
+      ctx.fillStyle = `rgba(${baseColor.join(',')},0.6)`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(e.idx + 1), mx, my);
+
+    } else {
+      // Inactive edges â very dim
+      ctx.beginPath();
+      ctx.moveTo(e.a[0], e.a[1]);
+      ctx.lineTo(e.b[0], e.b[1]);
+      ctx.strokeStyle = 'rgba(45,48,60,0.35)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    }
+
+    // Hover
+    if (ek === hoveredEdge && phase === 'place' && edgesPlaced < edgesAllowed) {
+      ctx.beginPath();
+      ctx.moveTo(e.a[0], e.a[1]);
+      ctx.lineTo(e.b[0], e.b[1]);
+      ctx.strokeStyle = 'rgba(102,170,255,0.5)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(e.a[0], e.a[1]);
+      ctx.lineTo(e.b[0], e.b[1]);
+      ctx.strokeStyle = 'rgba(102,170,255,0.1)';
+      ctx.lineWidth = 12;
+      ctx.stroke();
+    }
+  });
+
+  // ââ Vertices ââ
+  const drawnV = new Set();
+  Object.values(allEdges).forEach(e => {
+    [e.a, e.b].forEach(v => {
+      const vk = snap(v).join(',');
+      if (drawnV.has(vk)) return;
+      drawnV.add(vk);
+      const isSolid = e.isGoal || e.isPlayer;
+      ctx.beginPath();
+      ctx.arc(v[0], v[1], isSolid ? 2 : 1, 0, Math.PI*2);
+      ctx.fillStyle = isSolid
+        ? (e.isGoal ? 'rgba(255,200,50,0.6)' : 'rgba(102,170,255,0.6)')
+        : 'rgba(50,53,65,0.4)';
+      ctx.fill();
+    });
+  });
+
+  // ââ Ball trail ââ
+  for (let i = trail.length - 1; i >= 0; i--) {
+    trail[i].life -= 0.02;
+    if (trail[i].life <= 0) { trail.splice(i, 1); continue; }
+    const t = trail[i];
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, BALL_R * t.life * 0.6, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(200,220,255,${t.life * 0.2})`;
+    ctx.fill();
+  }
+
+  // ââ Ball ââ
+  if (ball) {
+    // Outer glow
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, BALL_R + 6, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(150,200,255,0.08)';
+    ctx.fill();
+
+    // Ball
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI*2);
+    const grad = ctx.createRadialGradient(ball.x - 1, ball.y - 1, 0, ball.x, ball.y, BALL_R);
+    grad.addColorStop(0, 'rgba(220,235,255,0.95)');
+    grad.addColorStop(1, 'rgba(100,170,255,0.8)');
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  // ââ Particles ââ
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.03; // Slight gravity on particles
+    p.vx *= 0.97; p.vy *= 0.97;
+    p.life -= p.decay;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
+    ctx.fillStyle = `rgba(${p.color.join(',')},${p.life * 0.7})`;
+    ctx.fill();
+  }
+
+  ctx.restore();
+  requestAnimationFrame(draw);
+}
+
+// âââ Start âââ
+buildLevel(1);
+requestAnimationFrame(draw);
 </script>
 </body>
 </html>
